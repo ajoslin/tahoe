@@ -83,6 +83,12 @@ var combineUrl = function combineUrl(endpoint, query) {
 };
 
 exports.default = function (opt, dispatch) {
+  var auth = opt.headers && opt.headers.authorization || opt.headers.Authorization;
+  var token = auth && /^Bearer /.test(String(auth)) && auth.split(' ')[1];
+  if (token) {
+    opt.query = (0, _extends3.default)({ token: token }, opt.query);
+  }
+
   var finalUrl = combineUrl(opt.endpoint, opt.query);
   var src = new EventSource(finalUrl, { withCredentials: opt.withCredentials });
   src.addEventListener('insert', handleMessage(opt, dispatch, handleInsert));

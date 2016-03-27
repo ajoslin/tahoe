@@ -57,6 +57,15 @@ const combineUrl = (endpoint, query) => {
   return url.format(ay)
 }
 export default (opt, dispatch) => {
+  const auth = opt.headers && opt.headers.authorization || opt.headers.Authorization
+  const token = auth && /^Bearer /.test(String(auth)) && auth.split(' ')[1]
+  if (token) {
+    opt.query = {
+      ...{token},
+      ...opt.query
+    }
+  }
+
   const finalUrl = combineUrl(opt.endpoint, opt.query)
   const src = new EventSource(finalUrl, { withCredentials: opt.withCredentials })
   src.addEventListener('insert', handleMessage(opt, dispatch, handleInsert))
