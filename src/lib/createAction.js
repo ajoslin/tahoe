@@ -26,9 +26,10 @@ export default (defaults = {}) => (opt = {}) => {
   // merge our multitude of option objects together
   // defaults = options defined in createAction
   // opt = options specified in action creator
-  const options = mapValues(merge({}, opt, defaults), (v, k, { params }) =>
-    result(v, params)
-  )
+  const options = mapValues(merge({}, opt, defaults), (v, k, { params }) => {
+    if (k === 'callback') return v
+    return result(v, params)
+  })
 
   if (!options.method) throw new Error('Missing method')
   if (!options.endpoint) throw new Error('Missing endpoint')

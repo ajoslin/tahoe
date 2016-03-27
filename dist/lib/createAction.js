@@ -50,6 +50,8 @@ exports.default = function () {
     // opt = options specified in action creator
     var options = (0, _lodash2.default)((0, _lodash4.default)({}, opt, defaults), function (v, k, _ref) {
       var params = _ref.params;
+
+      if (k === 'callback') return v;
       return result(v, params);
     });
 
