@@ -46,6 +46,9 @@ exports.default = function (opt) {
 
     req.end(function (err, res) {
       if (err) {
+        if (opt.callback) {
+          opt.callback(err);
+        }
         return dispatch({
           type: 'tahoe.failure',
           meta: opt,
@@ -63,6 +66,11 @@ exports.default = function (opt) {
 
       // handle json responses
       if (res.type === 'application/json') {
+        if (opt.callback) {
+          setTimeout(function () {
+            return opt.callback(null, res.body);
+          }, 16);
+        }
         return dispatch({
           type: 'tahoe.success',
           meta: opt,

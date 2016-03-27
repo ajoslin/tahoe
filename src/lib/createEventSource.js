@@ -61,7 +61,7 @@ export default (opt, dispatch) => {
   const token = auth && /^Bearer /.test(String(auth)) && auth.split(' ')[1]
   if (token) {
     opt.query = {
-      ...{token},
+      ...{ token },
       ...opt.query
     }
   }

@@ -29,6 +29,9 @@ export default (opt) => (dispatch) => {
 
   req.end((err, res) => {
     if (err) {
+      if (opt.callback) {
+        opt.callback(err)
+      }
       return dispatch({
         type: 'tahoe.failure',
         meta: opt,
@@ -46,6 +49,9 @@ export default (opt) => (dispatch) => {
 
     // handle json responses
     if (res.type === 'application/json') {
+      if (opt.callback) {
+        setTimeout(() => opt.callback(null, res.body), 16)
+      }
       return dispatch({
         type: 'tahoe.success',
         meta: opt,
