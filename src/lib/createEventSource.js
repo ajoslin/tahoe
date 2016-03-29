@@ -1,5 +1,6 @@
 import url from 'url'
 import entify from './entify'
+import EventSourceWorker from 'eventsource-worker'
 
 const handleMessage = (opt, dispatch, fn) => ({ data }) => {
   try {
@@ -67,7 +68,8 @@ export default (opt, dispatch) => {
   }
 
   const finalUrl = combineUrl(opt.endpoint, opt.query)
-  const src = new EventSource(finalUrl, { withCredentials: opt.withCredentials })
+
+  const src = EventSourceWorker(finalUrl)
   src.addEventListener('insert', handleMessage(opt, dispatch, handleInsert))
   src.addEventListener('update', handleMessage(opt, dispatch, handleUpdate))
   src.addEventListener('delete', handleMessage(opt, dispatch, handleDelete))

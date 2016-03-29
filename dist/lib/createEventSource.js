@@ -16,6 +16,10 @@ var _entify = require('./entify');
 
 var _entify2 = _interopRequireDefault(_entify);
 
+var _eventsourceWorker = require('eventsource-worker');
+
+var _eventsourceWorker2 = _interopRequireDefault(_eventsourceWorker);
+
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
 var handleMessage = function handleMessage(opt, dispatch, fn) {
@@ -90,7 +94,8 @@ exports.default = function (opt, dispatch) {
   }
 
   var finalUrl = combineUrl(opt.endpoint, opt.query);
-  var src = new EventSource(finalUrl, { withCredentials: opt.withCredentials });
+
+  var src = (0, _eventsourceWorker2.default)(finalUrl);
   src.addEventListener('insert', handleMessage(opt, dispatch, handleInsert));
   src.addEventListener('update', handleMessage(opt, dispatch, handleUpdate));
   src.addEventListener('delete', handleMessage(opt, dispatch, handleDelete));
