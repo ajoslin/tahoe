@@ -1,10 +1,12 @@
-import url from 'url'
 import entify from './entify'
-import EventSourceWorker from 'eventsource-worker'
+import superagent from 'superagent'
+import getEventSource from './event-source'
+import extend from 'xtend'
+import cuid from 'cuid'
 
-const handleMessage = (opt, dispatch, fn) => ({ data }) => {
+const handleMessage = (opt, dispatch, fn, data) => {
   try {
-    fn(JSON.parse(data), opt, dispatch)
+    fn(data, opt, dispatch)
   } catch (err) {
     dispatch({
       type: 'tahoe.failure',
@@ -48,29 +50,33 @@ const handleDelete = ({ prev }, opt, dispatch) =>
     }
   })
 
-const combineUrl = (endpoint, query) => {
-  const ay = url.parse(endpoint, true)
-  delete ay.querystring
-  ay.query = {
-    ...ay.query,
-    ...query
-  }
-  return url.format(ay)
+const typeHandler = {
+  insert: handleInsert,
+  update: handleUpdate,
+  delete: handleDelete
 }
+
 export default (opt, dispatch) => {
-  const auth = opt.headers && opt.headers.authorization || opt.headers.Authorization
-  const token = auth && /^Bearer /.test(String(auth)) && auth.split(' ')[1]
-  if (token) {
-    opt.query = {
-      ...{ token },
-      ...opt.query
-    }
-  }
+  const req = superagent.get(opt.endpoint)
+  const tailId = 'tail_' + cuid()
 
-  const finalUrl = combineUrl(opt.endpoint, opt.query)
+  opt.query = extend({tailId}, opt.query || {})
 
-  const src = EventSourceWorker(finalUrl)
-  src.addEventListener('insert', handleMessage(opt, dispatch, handleInsert))
-  src.addEventListener('update', handleMessage(opt, dispatch, handleUpdate))
-  src.addEventListener('delete', handleMessage(opt, dispatch, handleDelete))
+  if (opt.headers) req.set(opt.headers)
+  if (opt.query) req.query(opt.query)
+  if (opt.withCredentials) req.withCredentials()
+
+  req.end()
+
+  const source = getEventSource(opt)
+
+  source.addEventListener('sutro', function (event) {
+    const data = JSON.parse(event.data)
+    const handler = typeHandler[data.type]
+
+    if (!handler) throw new Error('Event type', data.type, 'not recognized')
+    if (data.tailId !== tailId) return
+
+    handleMessage(opt, dispatch, handler, data.data)
+  })
 }
