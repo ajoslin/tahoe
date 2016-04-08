@@ -1,10 +1,14 @@
-import entify from './entify'
-import superagent from 'superagent'
-import getEventSource from './event-source'
-import extend from 'xtend'
-import cuid from 'cuid'
+'use strict'
 
-const handleMessage = (opt, dispatch, fn, data) => {
+var entify = require('./entify')
+var superagent = require('superagent')
+var xtend = require('xtend')
+var cuid = require('cuid')
+var getSocket = require('./socket')
+
+var sessionId = 'session_' + cuid()
+
+var handleMessage = function handleMessage (opt, dispatch, fn, data) {
   try {
     fn(data, opt, dispatch)
   } catch (err) {
@@ -16,8 +20,9 @@ const handleMessage = (opt, dispatch, fn, data) => {
   }
 }
 
-const handleInsert = ({ next }, opt, dispatch) =>
-  dispatch({
+var handleInsert = function handleInsert (_ref, opt, dispatch) {
+  var next = _ref.next
+  return dispatch({
     type: 'tahoe.tail.insert',
     meta: opt,
     payload: {
@@ -25,8 +30,11 @@ const handleInsert = ({ next }, opt, dispatch) =>
       raw: next
     }
   })
-const handleUpdate = ({ prev, next }, opt, dispatch) =>
-  dispatch({
+}
+var handleUpdate = function handleUpdate (_ref2, opt, dispatch) {
+  var prev = _ref2.prev
+  var next = _ref2.next
+  return dispatch({
     type: 'tahoe.tail.update',
     meta: opt,
     payload: {
@@ -40,8 +48,10 @@ const handleUpdate = ({ prev, next }, opt, dispatch) =>
       }
     }
   })
-const handleDelete = ({ prev }, opt, dispatch) =>
-  dispatch({
+}
+var handleDelete = function handleDelete (_ref3, opt, dispatch) {
+  var prev = _ref3.prev
+  return dispatch({
     type: 'tahoe.tail.delete',
     meta: opt,
     payload: {
@@ -49,34 +59,38 @@ const handleDelete = ({ prev }, opt, dispatch) =>
       raw: prev
     }
   })
+}
 
-const typeHandler = {
+var typeHandler = {
   insert: handleInsert,
   update: handleUpdate,
   delete: handleDelete
 }
 
-export default (opt, dispatch) => {
-  const req = superagent.get(opt.endpoint)
-  const tailId = 'tail_' + cuid()
+module.exports = function createTail (opt, dispatch) {
+  var req = superagent.get(opt.endpoint)
+  var tailId = 'tail_' + cuid()
 
-  opt.query = extend({tailId}, opt.query || {})
+  opt.query = xtend({
+    sessionId: sessionId,
+    tailId: tailId
+  }, opt.query || {})
 
   if (opt.headers) req.set(opt.headers)
   if (opt.query) req.query(opt.query)
   if (opt.withCredentials) req.withCredentials()
 
-  req.end()
+  getSocket(opt, function (socket) {
+    console.log('init tail!', tailId)
+    req.end()
 
-  const source = getEventSource(opt)
+    socket.on('server.sutro', function (event) {
+      var handler = typeHandler[event.type]
 
-  source.addEventListener('sutro', function (event) {
-    const data = JSON.parse(event.data)
-    const handler = typeHandler[data.type]
+      if (!handler) throw new Error('Event type', event.type, 'not recognized')
+      if (event.tailId !== tailId) return
 
-    if (!handler) throw new Error('Event type', data.type, 'not recognized')
-    if (data.tailId !== tailId) return
-
-    handleMessage(opt, dispatch, handler, data.data)
+      handleMessage(opt, dispatch, handler, event.data)
+    })
   })
 }
