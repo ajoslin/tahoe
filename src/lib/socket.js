@@ -13,6 +13,7 @@ module.exports = function getSocket (opt, callback) {
     })
       .on('error', console.error.bind(console, 'Socket Error!'))
       .on('connect', console.log.bind(console, 'Socket Connected!'))
+      .on('reconnect', function () { window.location.reload() })
   }
   if (!connected) {
     io.on('connect', function () {
