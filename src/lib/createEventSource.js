@@ -81,7 +81,6 @@ module.exports = function createTail (opt, dispatch) {
   if (opt.withCredentials) req.withCredentials()
 
   getSocket(opt, function (socket) {
-    console.log('init tail!', tailId)
     req.end()
 
     socket.on('server.sutro', function (event) {
